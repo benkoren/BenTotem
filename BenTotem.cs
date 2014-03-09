@@ -318,6 +318,16 @@ namespace BenTotem
 
         private bool ShouldCastTotem(NetworkObject target)
         {
+            // If it hasn't been very long, we don't want to do much processing. Check that now.
+
+            DateTime waitUntil;
+            _totemTimers.TryGetValue(spellTotemSpellName, out waitUntil);
+
+            if (waitUntil > DateTime.Now)
+            {
+                return false;
+            }
+
             Spell spell = SpellManager.GetSpell(spellTotemSpellName);
             int totemRange = spell.GetStat(StatType.TotemRange);
             var spellCastTime = (int)spell.CastTime.TotalMilliseconds;
@@ -325,14 +335,11 @@ namespace BenTotem
             int maxTotemCount = spell.GetStat(StatType.SkillDisplayNumberOfTotemsAllowed);
             var currentTotems = spell.DeployedObjects;
 
-            DateTime lastTime;
-            _totemTimers.TryGetValue(spellTotemSpellName, out lastTime);
-            
-            bool waitedLongEnough = lastTime < DateTime.Now;
-            bool moreTotemsAvailable = currentTotems.Count() < maxTotemCount;
-            bool targetHasNoTotemsNear = currentTotems.Any(o => o.Position.Distance(target.Position) > minimumTotemDistance || !LokiPoe.RangedLineOfSight.CanSee(o.Position, target.Position));
-
-            bool shouldcast = waitedLongEnough && (moreTotemsAvailable || targetHasNoTotemsNear);
+            bool shouldcast = currentTotems.Count() < maxTotemCount // More totems are available
+                || (currentTotems.Any(o => // If any totems are out of range or LOS
+                        o.Position.Distance(target.Position) > minimumTotemDistance
+                        || !LokiPoe.RangedLineOfSight.CanSee(o.Position, target.Position)
+                    ));
 
             
             if (shouldcast)
