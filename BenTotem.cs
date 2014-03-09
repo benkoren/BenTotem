@@ -185,7 +185,7 @@ namespace BenTotem
             {
                 reqs = ret => true;
             }
-
+            
             return SpellManager.CreateSpellCastComposite(spell, reqs, location);
         }
 
@@ -288,6 +288,7 @@ namespace BenTotem
 
         private readonly Dictionary<string, DateTime> _totemTimers = new Dictionary<string, DateTime>();
         private readonly WaitTimer _wallCd = new WaitTimer(TimeSpan.FromSeconds(3));
+        private readonly WaitTimer _totemCd = new WaitTimer(TimeSpan.FromSeconds(1.5));
 
         private Composite BuildCombat()
         {
@@ -325,7 +326,7 @@ namespace BenTotem
             DateTime waitUntil;
             _totemTimers.TryGetValue(spellTotemSpellName, out waitUntil);
 
-            if (waitUntil > DateTime.Now)
+            if (!_totemCd.IsFinished)
             {
                 return false;
             }
@@ -346,15 +347,7 @@ namespace BenTotem
             
             if (shouldcast)
             {
-                DateTime castTime = DateTime.Now.AddMilliseconds(spellCastTime + 500);
-                if (!_totemTimers.ContainsKey(spellTotemSpellName))
-                {
-                    _totemTimers.Add(spellTotemSpellName, castTime);
-                }
-                else
-                {
-                    _totemTimers[spellTotemSpellName] = castTime;
-                }
+                _totemCd.Reset();
                 Log.Debug("••• CASTING TOTEM •••");
             }
 
@@ -371,8 +364,6 @@ namespace BenTotem
                         _wallCd.Reset();
                     }))
                 );
-
-            //Monster closeMonster = Targeting.Combat.Targets.fir as Monster;
         }
 
         private Composite CreateFallbackAttackLogic()
