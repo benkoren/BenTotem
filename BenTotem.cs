@@ -287,6 +287,7 @@ namespace BenTotem
         #region Combat
 
         private readonly Dictionary<string, DateTime> _totemTimers = new Dictionary<string, DateTime>();
+        private readonly WaitTimer _wallCd = new WaitTimer(TimeSpan.FromSeconds(3));
 
         private Composite BuildCombat()
         {
@@ -296,6 +297,7 @@ namespace BenTotem
                 CreateMoveToRange(),
                 CreateTotemLogic(),
                 CreateTrapLogic(),
+                CreateDefenseLogic(),
                 CreateFallbackAttackLogic()
                 );
         }
@@ -357,6 +359,20 @@ namespace BenTotem
             }
 
             return shouldcast;
+        }
+
+        private Composite CreateDefenseLogic()
+        {
+            return new PrioritySelector(
+                new Decorator(ret => _wallCd.IsFinished,
+                    new Action(ret =>
+                    {
+                        SpellManager.Cast("Frost Wall", MainTarget);
+                        _wallCd.Reset();
+                    }))
+                );
+
+            //Monster closeMonster = Targeting.Combat.Targets.fir as Monster;
         }
 
         private Composite CreateFallbackAttackLogic()
