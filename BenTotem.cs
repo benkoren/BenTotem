@@ -305,7 +305,7 @@ namespace BenTotem
                 ret =>
                 {
                     int trapRadius = 16; // Default Cold Snap radius. @TODO: Calculate this to account for increased aoe.
-                    return NumberOfMobsNear(MainTarget, trapRadius, 3);
+                    return NumberOfMobsNear(MainTarget, trapRadius, 2) && NumberOfMobsNear(MainTarget, 40, 4);
                 });
         }
 
