@@ -24,7 +24,7 @@ namespace BenTotem
     public class TemplarCr : CombatRoutine
     {
         private const string spellTotemSpellName = "Flame Totem";
-        private const int minimumTotemDistance = 20;
+        private const int minimumTotemDistance = 30;
 
         #region Overrides of CombatRoutine
 
