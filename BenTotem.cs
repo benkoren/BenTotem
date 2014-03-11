@@ -319,13 +319,18 @@ namespace BenTotem
             var currentTotems = spell.DeployedObjects;
 
             bool allTotemsDeployed = currentTotems.Count() == maxTotemCount;
-            bool anyTotemIsOutOfRange = currentTotems.Any(o => // If any totems are out of range or LOS
-                        o.Position.Distance(target.Position) > minimumTotemDistance
-                        || !LokiPoe.RangedLineOfSight.CanSee(o.Position, target.Position));
 
-            bool shouldCast = !allTotemsDeployed || anyTotemIsOutOfRange;
+            return !allTotemsDeployed || !targetHasTotemNear(MainTarget);
+        }
 
-            return shouldCast;
+        private bool targetHasTotemNear(NetworkObject target)
+        {
+            Spell totemSpell = SpellManager.GetSpell(spellTotemSpellName);
+            var currentTotems = totemSpell.DeployedObjects;
+
+            return currentTotems.Any(o =>
+                o.Position.Distance(target.Position) < minimumTotemDistance
+                && LokiPoe.RangedLineOfSight.CanSee(o.Position, target.Position));
         }
 
         private bool ShouldCastFrostWall()
@@ -336,14 +341,11 @@ namespace BenTotem
             var currentTotems = totemSpell.DeployedObjects;
 
             // Yes, this isn't efficient in terms of execution but it's much easier to read and follow.
-            bool plentyOfMana = Me.Mana > (totemSpell.Cost + wallSpell.Cost);
+            bool plentyOfMana = Me.Mana > totemSpell.Cost;
             bool allTotemsDeployed = currentTotems.Count() == maxTotemCount;
-            bool totemIsNearTarget = currentTotems.Any(o =>
-                        o.Position.Distance(MainTarget.Position) < minimumTotemDistance
-                        && !LokiPoe.RangedLineOfSight.CanSee(o.Position, MainTarget.Position));
             bool lifeThreatened = Me.HealthPercent < 50;
 
-            return totemIsNearTarget && (plentyOfMana || (lifeThreatened && allTotemsDeployed));
+            return targetHasTotemNear(MainTarget) && (plentyOfMana || (lifeThreatened && allTotemsDeployed));
         }
 
         private Composite CreateFallbackAttackLogic()
