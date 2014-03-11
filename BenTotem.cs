@@ -321,16 +321,6 @@ namespace BenTotem
 
         private bool ShouldCastTotem(NetworkObject target)
         {
-            // If it hasn't been very long, we don't want to do much processing. Check that now.
-
-            DateTime waitUntil;
-            _totemTimers.TryGetValue(spellTotemSpellName, out waitUntil);
-
-            if (!_totemCd.IsFinished)
-            {
-                return false;
-            }
-
             Spell spell = SpellManager.GetSpell(spellTotemSpellName);
             int totemRange = spell.GetStat(StatType.TotemRange);
             var spellCastTime = (int)spell.CastTime.TotalMilliseconds;
@@ -338,20 +328,14 @@ namespace BenTotem
             int maxTotemCount = spell.GetStat(StatType.SkillDisplayNumberOfTotemsAllowed);
             var currentTotems = spell.DeployedObjects;
 
-            bool shouldcast = currentTotems.Count() < maxTotemCount // More totems are available
-                || (currentTotems.Any(o => // If any totems are out of range or LOS
+            bool allTotemsDeployed = currentTotems.Count() == maxTotemCount;
+            bool anyTotemIsOutOfRange = currentTotems.Any(o => // If any totems are out of range or LOS
                         o.Position.Distance(target.Position) > minimumTotemDistance
-                        || !LokiPoe.RangedLineOfSight.CanSee(o.Position, target.Position)
-                    ));
+                        || !LokiPoe.RangedLineOfSight.CanSee(o.Position, target.Position));
 
-            
-            if (shouldcast)
-            {
-                _totemCd.Reset();
-                Log.Debug("••• CASTING TOTEM •••");
-            }
+            //Log.Debug("••• CASTING TOTEM •••");
 
-            return shouldcast;
+            return !allTotemsDeployed || anyTotemIsOutOfRange;
         }
 
         private Composite CreateDefenseLogic()
