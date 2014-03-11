@@ -356,14 +356,31 @@ namespace BenTotem
 
         private Composite CreateDefenseLogic()
         {
-            return new PrioritySelector(
+            /*return new PrioritySelector(
                 new Decorator(ret => _wallCd.IsFinished,
                     new Action(ret =>
                     {
                         SpellManager.Cast("Frost Wall", MainTarget);
                         _wallCd.Reset();
                     }))
-                );
+                );*/
+
+            Spell totemSpell = SpellManager.GetSpell(spellTotemSpellName);
+            Spell wallSpell = SpellManager.GetSpell("Frost Wall");
+            int maxTotemCount = totemSpell.GetStat(StatType.SkillDisplayNumberOfTotemsAllowed);
+            var currentTotems = totemSpell.DeployedObjects;
+
+            // Yes, this isn't efficient in terms of execution but it's much easier to read and follow.
+            bool plentyOfMana = Me.Mana > (totemSpell.Cost + wallSpell.Cost);
+            bool allTotemsDeployed = currentTotems.Count() == maxTotemCount;
+            bool totemIsNearTarget = currentTotems.Any(o =>
+                        o.Position.Distance(MainTarget.Position) < minimumTotemDistance
+                        && !LokiPoe.RangedLineOfSight.CanSee(o.Position, MainTarget.Position));
+            bool lifeThreatened = Me.HealthPercent < 50;
+
+            return Cast("Frost Wall",
+                ret => MainTarget.Position,
+                ret => plentyOfMana || (lifeThreatened && allTotemsDeployed));
         }
 
         private Composite CreateFallbackAttackLogic()
