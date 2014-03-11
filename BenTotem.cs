@@ -286,19 +286,15 @@ namespace BenTotem
 
         #region Combat
 
-        private readonly Dictionary<string, DateTime> _totemTimers = new Dictionary<string, DateTime>();
-        private readonly WaitTimer _wallCd = new WaitTimer(TimeSpan.FromSeconds(3));
-        private readonly WaitTimer _totemCd = new WaitTimer(TimeSpan.FromSeconds(1.5));
-
         private Composite BuildCombat()
         {
             return new PrioritySelector(
                 CreateFlaskLogic(),
                 CreateMoveToLos(),
                 CreateMoveToRange(),
-                CreateTotemLogic(),
+                Cast(spellTotemSpellName, ret => MainTarget.Position, ret => ShouldCastTotem(MainTarget)),
                 CreateTrapLogic(),
-                CreateDefenseLogic(),
+                Cast("Frost Wall", ret => MainTarget.Position, ret => ShouldCastFrostWall()),
                 CreateFallbackAttackLogic()
                 );
         }
@@ -311,12 +307,6 @@ namespace BenTotem
                     int trapRadius = 16; // Default Cold Snap radius. @TODO: Calculate this to account for increased aoe.
                     return NumberOfMobsNear(MainTarget, trapRadius, 3);
                 });
-        }
-
-        private Composite CreateTotemLogic() {
-            return Cast(spellTotemSpellName,
-                ret => MainTarget.Position,
-                ret => ShouldCastTotem(MainTarget));
         }
 
         private bool ShouldCastTotem(NetworkObject target)
@@ -333,22 +323,13 @@ namespace BenTotem
                         o.Position.Distance(target.Position) > minimumTotemDistance
                         || !LokiPoe.RangedLineOfSight.CanSee(o.Position, target.Position));
 
-            //Log.Debug("••• CASTING TOTEM •••");
+            bool shouldCast = !allTotemsDeployed || anyTotemIsOutOfRange;
 
-            return !allTotemsDeployed || anyTotemIsOutOfRange;
+            return shouldCast;
         }
 
-        private Composite CreateDefenseLogic()
+        private bool ShouldCastFrostWall()
         {
-            /*return new PrioritySelector(
-                new Decorator(ret => _wallCd.IsFinished,
-                    new Action(ret =>
-                    {
-                        SpellManager.Cast("Frost Wall", MainTarget);
-                        _wallCd.Reset();
-                    }))
-                );*/
-
             Spell totemSpell = SpellManager.GetSpell(spellTotemSpellName);
             Spell wallSpell = SpellManager.GetSpell("Frost Wall");
             int maxTotemCount = totemSpell.GetStat(StatType.SkillDisplayNumberOfTotemsAllowed);
@@ -362,9 +343,7 @@ namespace BenTotem
                         && !LokiPoe.RangedLineOfSight.CanSee(o.Position, MainTarget.Position));
             bool lifeThreatened = Me.HealthPercent < 50;
 
-            return Cast("Frost Wall",
-                ret => MainTarget.Position,
-                ret => totemIsNearTarget && (plentyOfMana || (lifeThreatened && allTotemsDeployed)));
+            return totemIsNearTarget && (plentyOfMana || (lifeThreatened && allTotemsDeployed));
         }
 
         private Composite CreateFallbackAttackLogic()
