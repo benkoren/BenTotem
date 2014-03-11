@@ -380,7 +380,7 @@ namespace BenTotem
 
             return Cast("Frost Wall",
                 ret => MainTarget.Position,
-                ret => plentyOfMana || (lifeThreatened && allTotemsDeployed));
+                ret => plentyOfMana || (lifeThreatened && allTotemsDeployed && totemIsNearTarget));
         }
 
         private Composite CreateFallbackAttackLogic()
