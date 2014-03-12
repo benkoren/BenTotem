@@ -341,7 +341,7 @@ namespace BenTotem
             var currentTotems = totemSpell.DeployedObjects;
 
             // Yes, this isn't efficient in terms of execution but it's much easier to read and follow.
-            bool plentyOfMana = Me.Mana > (totemSpell.Cost + wallSpell.Cost);
+            bool plentyOfMana = Me.Mana > totemSpell.Cost;
             bool allTotemsDeployed = currentTotems.Count() == maxTotemCount;
             bool lifeThreatened = Me.HealthPercent < 50;
 
