@@ -79,7 +79,7 @@ namespace BenTotem
                     continue;
                 }
 
-                if (LokiPoe.RangedLineOfSight.CanSee(LokiPoe.ObjectManager.Me.Position, mob.Position))
+                if (LokiPoe.RangedLineOfSight.CanSee(LokiPoe.ObjectManager.Me.Position, losMob.Position))
                 {
                     return losMob;
                 }
