@@ -378,8 +378,9 @@ namespace BenTotem
             bool plentyOfMana = Me.Mana > totemSpell.Cost;
             bool allTotemsDeployed = currentTotems.Count() == maxTotemCount;
             bool lifeThreatened = Me.HealthPercent < 50;
+            bool isInParty = LokiPoe.ObjectManager.Me.PartyStatus == PartyStatus.PartyMember;
 
-            return targetHasTotemNear(MainTarget) && (plentyOfMana || (lifeThreatened && allTotemsDeployed));
+            return !isInParty && targetHasTotemNear(MainTarget) && (plentyOfMana || (lifeThreatened && allTotemsDeployed));
         }
 
         private Composite CreateFallbackAttackLogic()
