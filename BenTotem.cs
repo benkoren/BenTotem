@@ -196,6 +196,12 @@ namespace BenTotem
                 reqs = ret => true;
             }
 
+            // Avoid CanCast spam.
+            if (!SpellManager.HasSpell(spell, true))
+            {
+                return null;
+            }
+
             return SpellManager.CreateSpellCastComposite(spell, reqs, ret => MainTarget);
         }
 
@@ -206,6 +212,12 @@ namespace BenTotem
             if (reqs == null)
             {
                 reqs = ret => true;
+            }
+
+            // Avoid CanCast spam.
+            if (!SpellManager.HasSpell(spell, true))
+            {
+                return null;
             }
             
             return SpellManager.CreateSpellCastComposite(spell, reqs, location);
