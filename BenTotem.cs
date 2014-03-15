@@ -195,7 +195,7 @@ namespace BenTotem
 
         private Composite CreateMoveToLos()
         {
-            return new Decorator(ret => !LokiPoe.MeleeLineOfSight.CanSee(LokiPoe.ObjectManager.Me.Position, MainTarget.Position),
+            return new Decorator(ret => !LokiPoe.RangedLineOfSight.CanSee(LokiPoe.ObjectManager.Me.Position, MainTarget.Position),
                 CommonBehaviors.MoveTo(ret => MainTarget.Position, ret => "CreateMoveToLos"));
         }
 
