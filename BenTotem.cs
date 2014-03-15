@@ -64,7 +64,29 @@ namespace BenTotem
         /// <summary>
         ///     Returns the first target in the combat targeting list as a monster. (Null if no target)
         /// </summary>
-        public Monster MainTarget { get { return Targeting.Combat.Targets.FirstOrDefault() as Monster; } }
+        public Monster MainTarget { get {
+            Monster target = Targeting.Combat.Targets.FirstOrDefault() as Monster;
+
+            if (LokiPoe.RangedLineOfSight.CanSee(LokiPoe.ObjectManager.Me.Position, target.Position))
+            {
+                return target;
+            }
+
+            foreach (Monster losMob in Targeting.Combat.Targets.OfType<Monster>())
+            {
+                if (losMob.IsDead)
+                {
+                    continue;
+                }
+
+                if (LokiPoe.RangedLineOfSight.CanSee(LokiPoe.ObjectManager.Me.Position, mob.Position))
+                {
+                    return losMob;
+                }
+            }
+
+            return target; 
+        } }
 
         #endregion
 
