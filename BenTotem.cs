@@ -64,7 +64,29 @@ namespace BenTotem
         /// <summary>
         ///     Returns the first target in the combat targeting list as a monster. (Null if no target)
         /// </summary>
-        public Monster MainTarget { get { return Targeting.Combat.Targets.FirstOrDefault() as Monster; } }
+        public Monster MainTarget { get {
+            Monster target = Targeting.Combat.Targets.FirstOrDefault() as Monster;
+
+            if (LokiPoe.RangedLineOfSight.CanSee(LokiPoe.ObjectManager.Me.Position, target.Position))
+            {
+                return target;
+            }
+
+            foreach (Monster losMob in Targeting.Combat.Targets.OfType<Monster>())
+            {
+                if (losMob.IsDead)
+                {
+                    continue;
+                }
+
+                if (LokiPoe.RangedLineOfSight.CanSee(LokiPoe.ObjectManager.Me.Position, losMob.Position))
+                {
+                    return losMob;
+                }
+            }
+
+            return target; 
+        } }
 
         #endregion
 
@@ -174,6 +196,12 @@ namespace BenTotem
                 reqs = ret => true;
             }
 
+            // Avoid CanCast spam.
+            if (!SpellManager.HasSpell(spell, true))
+            {
+                return null;
+            }
+
             return SpellManager.CreateSpellCastComposite(spell, reqs, ret => MainTarget);
         }
 
@@ -185,6 +213,12 @@ namespace BenTotem
             {
                 reqs = ret => true;
             }
+
+            // Avoid CanCast spam.
+            if (!SpellManager.HasSpell(spell, true))
+            {
+                return null;
+            }
             
             return SpellManager.CreateSpellCastComposite(spell, reqs, location);
         }
@@ -195,7 +229,7 @@ namespace BenTotem
 
         private Composite CreateMoveToLos()
         {
-            return new Decorator(ret => !LokiPoe.MeleeLineOfSight.CanSee(LokiPoe.ObjectManager.Me.Position, MainTarget.Position),
+            return new Decorator(ret => !LokiPoe.RangedLineOfSight.CanSee(LokiPoe.ObjectManager.Me.Position, MainTarget.Position),
                 CommonBehaviors.MoveTo(ret => MainTarget.Position, ret => "CreateMoveToLos"));
         }
 
@@ -294,8 +328,8 @@ namespace BenTotem
                 CreateMoveToRange(),
                 Cast(spellTotemSpellName, ret => MainTarget.Position, ret => ShouldCastTotem(MainTarget)),
                 CreateTrapLogic(),
-                Cast("Frost Wall", ret => MainTarget.Position, ret => ShouldCastFrostWall()),
-                CreateFallbackAttackLogic()
+                Cast("Frost Wall", ret => MainTarget.Position, ret => ShouldCastFrostWall())
+                //CreateFallbackAttackLogic()
                 );
         }
 
@@ -341,11 +375,12 @@ namespace BenTotem
             var currentTotems = totemSpell.DeployedObjects;
 
             // Yes, this isn't efficient in terms of execution but it's much easier to read and follow.
-            bool plentyOfMana = Me.Mana > (totemSpell.Cost + wallSpell.Cost);
+            bool plentyOfMana = Me.Mana > totemSpell.Cost;
             bool allTotemsDeployed = currentTotems.Count() == maxTotemCount;
             bool lifeThreatened = Me.HealthPercent < 50;
+            bool isInParty = LokiPoe.ObjectManager.Me.PartyStatus == PartyStatus.PartyMember;
 
-            return targetHasTotemNear(MainTarget) && (plentyOfMana || (lifeThreatened && allTotemsDeployed));
+            return !isInParty && targetHasTotemNear(MainTarget) && (plentyOfMana || (lifeThreatened && allTotemsDeployed));
         }
 
         private Composite CreateFallbackAttackLogic()
