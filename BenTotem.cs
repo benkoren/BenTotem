@@ -328,8 +328,8 @@ namespace BenTotem
                 CreateMoveToRange(),
                 Cast(spellTotemSpellName, ret => MainTarget.Position, ret => ShouldCastTotem(MainTarget)),
                 CreateTrapLogic(),
-                Cast("Frost Wall", ret => MainTarget.Position, ret => ShouldCastFrostWall()),
-                CreateFallbackAttackLogic()
+                Cast("Frost Wall", ret => MainTarget.Position, ret => ShouldCastFrostWall())
+                //CreateFallbackAttackLogic()
                 );
         }
 
