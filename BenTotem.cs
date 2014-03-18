@@ -236,7 +236,7 @@ namespace BenTotem
         private void RegisterCurse(string spell, string curse)
         {
             // 5+ mobs near the best target.
-            RegisterCurse(spell, curse, ret => MainTarget.IsCursable && (MainTarget.Rarity >= Rarity.Rare || NumberOfMobsNear(MainTarget, 10, 4)));
+            RegisterCurse(spell, curse, ret => MainTarget.IsCursable && (MainTarget.Rarity >= Rarity.Rare || NumberOfMobsNear(MainTarget, 10, 4))); 
         }
 
         private void RegisterCurse(string spell, string curse, SpellManager.GetSelection<bool> requirement)
@@ -331,6 +331,18 @@ namespace BenTotem
             }
         }
 
+        private IEnumerable<InventoryItem> JadeFlasks
+        {
+            get
+            {
+                IEnumerable<InventoryItem> inv = LokiPoe.ObjectManager.Me.Inventory.Flasks.Items;
+                return from item in inv
+                       let flask = item.Flask
+                       where flask != null && item.Name == "Jade Flask" && flask.CanUse
+                       select item;
+            }
+        }
+
         private IEnumerable<InventoryItem> QuicksilverFlasks
         {
             get
@@ -359,6 +371,18 @@ namespace BenTotem
                     new Action(ret =>
                     {
                         ManaFlasks.First().Use();
+                        _flaskCd.Reset();
+                    })),
+                new Decorator(ret => _flaskCd.IsFinished && Me.HealthPercent < 58 && GraniteFlasks.Count() != 0 && !Me.HasAura("flask_effect_granite"),
+                    new Action(ret =>
+                    {
+                        GraniteFlasks.First().Use();
+                        _flaskCd.Reset();
+                    })),
+                new Decorator(ret => _flaskCd.IsFinished && Me.HealthPercent < 66 && JadeFlasks.Count() != 0 && !Me.HasAura("flask_effect_jade"),
+                    new Action(ret =>
+                    {
+                        JadeFlasks.First().Use();
                         _flaskCd.Reset();
                     }))
                 );
