@@ -28,7 +28,8 @@ namespace BenTotem
 
         #region Overrides of CombatRoutine
 
-        private Composite _buff, _combat;
+        private Composite _combat;
+        private PrioritySelector BuffComposite { get; set; }
 
         /// <summary> Gets the name. </summary>
         /// <value> The name. </value>
@@ -36,7 +37,7 @@ namespace BenTotem
 
         /// <summary> Gets the buff behavior. </summary>
         /// <value> The buff composite. </value>
-        public override Composite Buff { get { return _buff; } }
+        public override Composite Buff { get { return BuffComposite; } }
 
         /// <summary> Gets the combat behavior. </summary>
         /// <value> The combat composite. </value>
@@ -53,7 +54,8 @@ namespace BenTotem
         /// <summary> Initializes this <see cref="CombatRoutine" />. </summary>
         public override void Initialize()
         {
-            _buff = BuildBuff();
+            BuffComposite = new PrioritySelector(context => MainTarget);
+            RegisterCurses();
             _combat = BuildCombat();
         }
 
@@ -91,13 +93,6 @@ namespace BenTotem
         #endregion
 
         #region Buff Helpers
-
-        private Composite BuildBuff()
-        {
-            // NOTE: We do not buff any auras here, because they are done for us by the core.
-            return new PrioritySelector(
-                );
-        }
 
         private bool HasAura(Actor actor, string auraName, int minCharges = -1, double minSecondsLeft = -1)
         {
@@ -223,6 +218,59 @@ namespace BenTotem
             return SpellManager.CreateSpellCastComposite(spell, reqs, location);
         }
 
+        private void RegisterCurses()
+        {
+            RegisterCurse("Temporal Chains", "curse_temporal_chains");
+            RegisterCurse("Punishment", "curse_punishment");
+            RegisterCurse("Warlord's Mark", "curse_drain_essence");
+            RegisterCurse("Projectile Weakness", "curse_projectile_weakness");
+            RegisterCurse("Conductivity", "curse_lightning_weakness");
+            RegisterCurse("Enfeeble", "curse_enfeeble");
+            RegisterCurse("Frostbite", "curse_cold_weakness");
+            RegisterCurse("Flammability", "curse_fire_weakness");
+            RegisterCurse("Elemental Weakness", "curse_elemental_weakness");
+            RegisterCurse("Critical Weakness", "curse_critical_weakness");
+            RegisterCurse("Vulnerability", "curse_vulnerability");
+        }
+
+        private void RegisterCurse(string spell, string curse)
+        {
+            // 5+ mobs near the best target.
+            RegisterCurse(spell, curse, ret => MainTarget.IsCursable && (MainTarget.Rarity >= Rarity.Rare || NumberOfMobsNear(MainTarget, 10, 4))); 
+        }
+
+        private void RegisterCurse(string spell, string curse, SpellManager.GetSelection<bool> requirement)
+        {
+            RegisterCurse(spell, curse, requirement, ret => MainTarget);
+        }
+
+        private void RegisterCurse(string spell, string curse, SpellManager.GetSelection<bool> requirement, SpellManager.GetSelection<NetworkObject> on)
+        {
+            // If we don't have the spell, or it's a totem, ignore it
+            if (!SpellManager.HasSpell(spell, true) || SpellManager.GetSpell(spell).GetStat(StatType.IsTotem) != 0)
+            {
+                return;
+            }
+
+            Log.Debug("• Registered Curse " + spell);
+            // Note: we're putting this in the buff composite, since we want it to run before the normal combat stuff.
+            BuffComposite.AddChild(SpellManager.CreateSpellCastComposite(spell,
+                ret =>
+                {
+                    // First, check if there are requirements for this curse.
+                    bool req = requirement == null || requirement(ret);
+
+                    // If the requirements have been met, ensure the monster doesn't have the aura we're looking for.
+                    if (req)
+                    {
+                        return !(on(ret) as Actor).HasAura(curse);
+                    }
+
+                    return false;
+                },
+                on));
+        }
+
         #endregion
 
         #region LOS
@@ -283,6 +331,18 @@ namespace BenTotem
             }
         }
 
+        private IEnumerable<InventoryItem> JadeFlasks
+        {
+            get
+            {
+                IEnumerable<InventoryItem> inv = LokiPoe.ObjectManager.Me.Inventory.Flasks.Items;
+                return from item in inv
+                       let flask = item.Flask
+                       where flask != null && item.Name == "Jade Flask" && flask.CanUse
+                       select item;
+            }
+        }
+
         private IEnumerable<InventoryItem> QuicksilverFlasks
         {
             get
@@ -311,6 +371,18 @@ namespace BenTotem
                     new Action(ret =>
                     {
                         ManaFlasks.First().Use();
+                        _flaskCd.Reset();
+                    })),
+                new Decorator(ret => _flaskCd.IsFinished && Me.HealthPercent < 58 && GraniteFlasks.Count() != 0 && !Me.HasAura("flask_effect_granite"),
+                    new Action(ret =>
+                    {
+                        GraniteFlasks.First().Use();
+                        _flaskCd.Reset();
+                    })),
+                new Decorator(ret => _flaskCd.IsFinished && Me.HealthPercent < 66 && JadeFlasks.Count() != 0 && !Me.HasAura("flask_effect_jade"),
+                    new Action(ret =>
+                    {
+                        JadeFlasks.First().Use();
                         _flaskCd.Reset();
                     }))
                 );
